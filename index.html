@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>越南語學習小站 v3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#ff6680">
+<style>
+.chip { display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid #e8b9c4; margin:4px; cursor:pointer; background:#fff; }
+.chip.active { background:#ff6680; color:#fff; border-color:#ff6680; }
+</style>
+</head>
+<body>
+<h1>越南語學習小站 v3</h1>
+<section>
+<h2>越南語字母表</h2>
+<div id="alphabet"></div>
+<h2>聲調練習</h2>
+<div id="tones"></div>
+</section>
+<section>
+<h2>數字＋量詞</h2>
+<div id="numbers"></div>
+</section>
+<section>
+<h2>主題對話（可收藏＋標籤篩選）</h2>
+<div id="tagBar"></div>
+<div id="dialogues"></div>
+<button onclick="showFavs()">只看收藏</button>
+</section>
+<section>
+<h2>測驗遊戲</h2>
+<button onclick="startQuiz()">開始測驗</button>
+<div id="quiz"></div>
+</section>
+<script>
+const ALPHABET=["A", "Ă", "Â", "B", "C", "D", "Đ", "E", "Ê", "G", "H", "I", "K", "L", "M", "N", "O", "Ô", "Ơ", "P", "Q", "R", "S", "T", "U", "Ư", "V", "X", "Y"];
+const TONES=[{"mark": "ma", "desc": "ngang (平聲, 無聲調符號)"}, {"mark": "má", "desc": "sắc (陽聲, 上升)"}, {"mark": "mà", "desc": "huyền (陰聲, 下降)"}, {"mark": "mả", "desc": "hỏi (拐聲, 上下彎)"}, {"mark": "mã", "desc": "ngã (波聲, 上揚斷裂)"}, {"mark": "mạ", "desc": "nặng (重聲, 短促下降)"}];
+const NUMS={"1": "một", "2": "hai", "3": "ba", "4": "bốn", "5": "năm", "6": "sáu", "7": "bảy", "8": "tám", "9": "chín", "10": "mười"};
+const COUNTERS=[{"counter": "cái", "note": "一般物品"}, {"counter": "con", "note": "動物"}, {"counter": "chiếc", "note": "件/台"}, {"counter": "tấm", "note": "張"}, {"counter": "quyển", "note": "本（書）"}];
+const DIALOGS=[{"tag": "衣服購物", "vi": ["Tôi có thể thử áo này không?", "Vâng, phòng thử đồ ở đằng kia.", "Xin lỗi, hàng giảm giá thì không được thử."], "zh": ["這件衣服可以試穿嗎？", "可以，試衣間在那邊。", "抱歉，特價品不能試穿。"]}, {"tag": "衣服購物", "vi": ["Có size lớn hơn không?", "Có, đây là size L.", "Xin lỗi, chỉ còn size M thôi."], "zh": ["有大一點的尺寸嗎？", "有，這是 L 號。", "抱歉，只有 M 號了。"]}, {"tag": "食品購物", "vi": ["Cái này bao nhiêu tiền?", "50 nghìn đồng.", "30 nghìn đồng một ký."], "zh": ["這個多少錢？", "五萬越盾。", "一公斤三萬越盾。"]}, {"tag": "食品購物", "vi": ["Còn tươi không?", "Vâng, hôm nay mới nhập.", "Còn rất tươi."], "zh": ["新鮮嗎？", "很新鮮，今天剛到貨。", "還很新鮮。"]}, {"tag": "餐廳", "vi": ["Có món nào đặc biệt không?", "Hôm nay có phở bò.", "Gỏi cuốn rất ngon."], "zh": ["有推薦的菜嗎？", "今天有牛肉河粉。", "生春捲很好吃。"]}, {"tag": "餐廳", "vi": ["Làm ơn cho ít cay thôi.", "Vâng, tôi sẽ cho ít ớt thôi.", "Không cho ớt cũng được."], "zh": ["請做不辣一點。", "好，我少放辣椒。", "也可以完全不放辣椒。"]}, {"tag": "打招呼", "vi": ["Xin chào!", "Chào bạn!", "Xin chào anh/chị."], "zh": ["你好！", "你好！", "您好！"]}, {"tag": "打招呼", "vi": ["Tạm biệt!", "Hẹn gặp lại!", "Chào tạm biệt."], "zh": ["再見！", "下次見！", "再見！"]}, {"tag": "祝賀", "vi": ["Chúc mừng sinh nhật!", "Cảm ơn bạn!"], "zh": ["生日快樂！", "謝謝你！"]}, {"tag": "祝賀", "vi": ["Chúc mừng năm mới!", "Chúc bạn nhiều may mắn!", "Chúc sức khỏe dồi dào!"], "zh": ["新年快樂！", "祝你幸運！", "祝你健康！"]}, {"tag": "交通", "vi": ["Đi đến sân bay hết bao nhiêu tiền?", "Khoảng 200 nghìn đồng.", "Tùy vào giao thông."], "zh": ["到機場要多少錢？", "大概二十萬越盾。", "要看交通狀況。"]}, {"tag": "交通", "vi": ["Xe buýt này đi đâu?", "Đi đến trung tâm thành phố.", "Dừng ở bến cuối là chợ Bến Thành."], "zh": ["這班公車去哪裡？", "去市中心。", "停在濱城市場。"]}];
+function speak(t){let u=new SpeechSynthesisUtterance(t);u.lang='vi-VN';speechSynthesis.speak(u);}
+const ab=document.getElementById('alphabet');ALPHABET.forEach(ch=>{let d=document.createElement('button');d.textContent=ch;d.onclick=()=>speak(ch);ab.appendChild(d);});
+const tn=document.getElementById('tones');TONES.forEach(o=>{let d=document.createElement('button');d.textContent=o.mark+" ("+o.desc+")";d.onclick=()=>speak(o.mark);tn.appendChild(d);});
+const nm=document.getElementById('numbers');for (let i=1;i<=10;i++){let d=document.createElement('div');d.textContent=i+": "+NUMS[i];d.onclick=()=>speak(NUMS[i]);nm.appendChild(d);}COUNTERS.forEach(c=>{let d=document.createElement('div');d.textContent=c.counter+" - "+c.note;nm.appendChild(d);});
+
+let favs=new Set(JSON.parse(localStorage.getItem('vnFavs')||"[]"));
+function toggleFav(idx){if(favs.has(idx))favs.delete(idx);else favs.add(idx);localStorage.setItem('vnFavs',JSON.stringify(Array.from(favs)));renderDialogues();}
+function showFavs(){renderDialogues(true);}
+
+const tagBar=document.getElementById('tagBar');const allTags=[...new Set(DIALOGS.map(d=>d.tag))];
+function renderTags(){tagBar.innerHTML='';allTags.forEach(t=>{const chip=document.createElement('span');chip.className='chip';chip.textContent=t;if(activeTags.has(t))chip.classList.add('active');chip.onclick=()=>{if(activeTags.has(t))activeTags.delete(t);else activeTags.add(t);renderDialogues();renderTags();};tagBar.appendChild(chip);});}
+const activeTags=new Set();renderTags();
+
+function renderDialogues(onlyFav){const dl=document.getElementById('dialogues');dl.innerHTML="";DIALOGS.forEach((d,idx)=>{if(onlyFav&&!favs.has(idx))return;if(activeTags.size&&!activeTags.has(d.tag))return;let box=document.createElement('div');box.innerHTML="<h3>"+d.tag+"</h3>";d.vi.forEach((line,i)=>{let p=document.createElement('div');p.textContent=(i==0?"❓ ":"🗣️ ")+line+" — "+d.zh[i];let b=document.createElement('button');b.textContent='▶';b.onclick=()=>speak(line);p.appendChild(b);if(i==0){let f=document.createElement('button');f.textContent=favs.has(idx)?"❤️":"🤍";f.onclick=()=>toggleFav(idx);p.appendChild(f);}box.appendChild(p);});dl.appendChild(box);});}
+renderDialogues(false);
+
+let quizData=[];let score=0;let total=0;
+function startQuiz(){quizData=[];DIALOGS.forEach(d=>d.vi.forEach((line,i)=>quizData.push({vi:line,zh:d.zh[i]})));quizData=quizData.sort(()=>Math.random()-0.5).slice(0,10);score=0;total=0;renderQuiz();}
+function renderQuiz(){const qd=document.getElementById('quiz');if(total>=quizData.length){qd.innerHTML="完成！ 得分:"+score+"/"+quizData.length;return;}let q=quizData[total];const allZh=DIALOGS.flatMap(d=>d.zh);let opts=new Set([q.zh]);while(opts.size<4)opts.add(allZh[Math.floor(Math.random()*allZh.length)]);opts=[...opts].sort(()=>Math.random()-0.5);qd.innerHTML="<div>🗣️ "+q.vi+"</div>";opts.forEach(opt=>{let b=document.createElement('button');b.textContent=opt;b.onclick=()=>{if(opt===q.zh)score++;total++;renderQuiz();};qd.appendChild(b);});qd.innerHTML+="<div>分數:"+score+"/"+total+"</div>";}
+</script>
+</body>
+</html>
